@@ -1,42 +1,15 @@
-package com.example.documentanonymization.entity;
-
-import jakarta.persistence.*;
+package com.example.documentanonymization.dto;
 
 import java.util.Date;
 
-@Entity
-@Table(name="article")
-public class Article {
+public class ArticleDto {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false, columnDefinition = "LONGBLOB")
     private byte[] file;
-
-    @Column(nullable = false)
     private String authorEmail;
-
-    @Column(nullable = false)
-    private String status;   // "Kabul", "İncelemede", "İncelendi", "Revize" gibi durumlar
-
-    @Column(nullable = false)
+    private String status;
     private String trackingNumber;
-
-    @Temporal(TemporalType.TIMESTAMP)
     private Date submissionDate;
-
-    @Temporal(TemporalType.TIMESTAMP)
     private Date reviewDate;
-
-    @ManyToOne
-    @JoinColumn(name = "reviewer_id")
-    private Reviewer assignedReviewer;
-
-    public Long getId() {
-        return id;
-    }
 
     public byte[] getFile() {
         return file;
@@ -76,14 +49,6 @@ public class Article {
 
     public void setSubmissionDate(Date submissionDate) {
         this.submissionDate = submissionDate;
-    }
-
-    public Reviewer getAssignedReviewer() {
-        return assignedReviewer;
-    }
-
-    public void setAssignedReviewer(Reviewer assignedReviewer) {
-        this.assignedReviewer = assignedReviewer;
     }
 
     public Date getReviewDate() {
