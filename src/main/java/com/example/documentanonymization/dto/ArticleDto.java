@@ -4,12 +4,21 @@ import java.util.Date;
 
 public class ArticleDto {
 
+    private String fileName;
     private byte[] file;
     private String authorEmail;
     private String status;
     private String trackingNumber;
     private Date submissionDate;
     private Date reviewDate;
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
 
     public byte[] getFile() {
         return file;

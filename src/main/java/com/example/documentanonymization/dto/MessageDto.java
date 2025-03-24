@@ -1,32 +1,15 @@
-package com.example.documentanonymization.entity;
-
-import jakarta.persistence.*;
+package com.example.documentanonymization.dto;
 
 import java.util.Date;
 
-@Entity
-@Table(name="message")
-public class Message {
+public class MessageDto {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false)
     private String senderEmail;
-
-    @Column(nullable = false)
     private String receiverEmail;
-
-    @Column(nullable = false)
     private String content;
-
-    @Temporal(TemporalType.TIMESTAMP)
     private Date sentDate;
 
-    public Long getId() {
-        return id;
-    }
+    public MessageDto() {}
 
     public String getSenderEmail() {
         return senderEmail;

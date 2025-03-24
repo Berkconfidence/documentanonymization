@@ -12,8 +12,17 @@ public class Article {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
+    private String fileName;
+
     @Column(nullable = false, columnDefinition = "LONGBLOB")
     private byte[] file;
+
+    @Column(nullable = true, columnDefinition = "LONGBLOB")
+    private byte[] anonymizedFile; // Anonimleştirilmiş belge
+
+    @Column(nullable = true, columnDefinition = "LONGBLOB")
+    private byte[] reviewedFile; // Hakem değerlendirmesi sonrası belge
 
     @Column(nullable = false)
     private String authorEmail;
@@ -38,12 +47,36 @@ public class Article {
         return id;
     }
 
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
     public byte[] getFile() {
         return file;
     }
 
     public void setFile(byte[] file) {
         this.file = file;
+    }
+
+    public byte[] getAnonymizedFile() {
+        return anonymizedFile;
+    }
+
+    public void setAnonymizedFile(byte[] anonymizedFile) {
+        this.anonymizedFile = anonymizedFile;
+    }
+
+    public byte[] getReviewedFile() {
+        return reviewedFile;
+    }
+
+    public void setReviewedFile(byte[] reviewedFile) {
+        this.reviewedFile = reviewedFile;
     }
 
     public String getAuthorEmail() {

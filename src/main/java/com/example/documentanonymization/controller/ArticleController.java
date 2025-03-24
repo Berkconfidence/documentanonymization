@@ -9,8 +9,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.Optional;
-import java.util.List;
 
 @RestController
 @RequestMapping("/articles")
@@ -22,27 +20,29 @@ public class ArticleController {
     public ArticleController() {}
 
     @GetMapping
-    public List<Article> getAllArticle() {
+    public ResponseEntity<?> getAllArticle() {
         return articleService.getAllArticle();
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Article> getArticle(@PathVariable Long id) {
-        Optional<Article> article = articleService.getArticleById(id);
-        return article.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
     @GetMapping("/tracking/{trackingNumber}")
-    public ResponseEntity<Article> getArticleByTrackingNumber(@PathVariable String trackingNumber) {
-        Optional<Article> article = articleService.getArticleByTrackingNumber(trackingNumber);
-        return article.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<?> getArticleByTrackingNumber(@PathVariable String trackingNumber) {
+        return articleService.getArticleByTrackingNumber(trackingNumber);
     }
 
     @GetMapping("/email/{email}")
-    public List<Article> getArticleByAuthorEmail(@PathVariable String email) {
+    public ResponseEntity<?> getArticlesByAuthorEmail(@PathVariable String email) {
         return articleService.getArticleByAuthorEmail(email);
     }
 
+    @GetMapping("/download/{trackingNumber}")
+    public ResponseEntity<byte[]> downloadArticle(@PathVariable String trackingNumber) {
+        return articleService.downloadArticleFile(trackingNumber);
+    }
+
+    @GetMapping("/view/{trackingNumber}")
+    public ResponseEntity<byte[]> viewAnonimizeArticleFile(@PathVariable String trackingNumber) {
+        return articleService.viewAnonimizeArticleFile(trackingNumber);
+    }
 
     @PostMapping("/create")
     public ResponseEntity<Article> createArticle(@RequestParam("file") MultipartFile file, @RequestParam("email") String email) {
@@ -55,6 +55,26 @@ public class ArticleController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(null);
+        }
+    }
+
+    @PostMapping("/anonimize/{trackingNumber}")
+    public ResponseEntity<?> anonimizeArticle(@PathVariable String trackingNumber) {
+        try {
+            System.out.println("Anonimleştirme isteği alındı: " + trackingNumber);
+            Article updatedArticle = articleService.anonimizeArticle(trackingNumber);
+            System.out.println("Anonimleştirme başarılı");
+            return ResponseEntity.ok(updatedArticle);
+        } catch (IOException e) {
+            System.err.println("I/O Hatası: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("I/O Hatası: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Beklenmeyen hata: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Beklenmeyen hata: " + e.getMessage());
         }
     }
 }
