@@ -4,6 +4,7 @@ import com.example.documentanonymization.dto.ArticleDto;
 import com.example.documentanonymization.entity.Article;
 import com.example.documentanonymization.entity.Reviewer;
 import com.example.documentanonymization.repository.ArticleRepository;
+import com.example.documentanonymization.repository.ReviewerRepository;
 import edu.stanford.nlp.pipeline.CoreDocument;
 import edu.stanford.nlp.pipeline.CoreEntityMention;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
@@ -32,7 +33,16 @@ public class ArticleService {
     @Autowired
     private ArticleRepository articleRepository;
 
-    public ArticleService() {}
+    @Autowired
+    private ReviewerRepository reviewerRepository;
+
+    @Autowired
+    private LogService logService;
+
+    public ArticleService(ArticleRepository articleRepository, LogService logService) {
+        this.articleRepository = articleRepository;
+        this.logService = logService;
+    }
 
 
     public ResponseEntity<List<ArticleDto>> getAllArticle() {
@@ -127,6 +137,36 @@ public class ArticleService {
         return new ResponseEntity<>(article.getAnonymizedFile(), headers, HttpStatus.OK);
     }
 
+    public ResponseEntity<List<ArticleDto>> getArticlesByReviewerId(Long id) {
+        Optional<Reviewer> reviewerOpt = reviewerRepository.findById(id);
+
+        if (reviewerOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Reviewer reviewer = reviewerOpt.get();
+        List<Article> articles = articleRepository.findByAssignedReviewer(reviewer);
+
+        if (articles.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        List<ArticleDto> dtoList = articles.stream()
+                .map(article -> {
+                    ArticleDto dto = new ArticleDto();
+                    dto.setFileName(article.getFileName());
+                    dto.setAuthorEmail(article.getAuthorEmail());
+                    dto.setStatus(article.getStatus());
+                    dto.setTrackingNumber(article.getTrackingNumber());
+                    dto.setSubmissionDate(article.getSubmissionDate());
+                    dto.setReviewDate(article.getReviewDate());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(dtoList);
+    }
+
     public Article createArticle(MultipartFile file, String email) throws IOException {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("Dosya boş olamaz");
@@ -149,9 +189,45 @@ public class ArticleService {
         article.setFileName(fileName);
         article.setFile(file.getBytes());
         article.setAuthorEmail(email);
-        article.setStatus("Kabul");
+        article.setStatus("Alındı");
         article.setTrackingNumber(trackingNumber);
         article.setSubmissionDate(new Date());
+
+        try {
+            String action = "Makale sisteme yüklendi";
+            logService.createLog(trackingNumber, action, email, "Yazar");
+        } catch (Exception e) {
+            System.err.println("Log oluşturma sırasında hata: " + e.getMessage());
+        }
+        return articleRepository.save(article);
+    }
+
+    public Article assignReviewer(String trackingNumber, Reviewer reviewer) {
+        Optional<Article> articleOpt = articleRepository.findByTrackingNumber(trackingNumber);
+
+        if (articleOpt.isEmpty()) {
+            throw new IllegalArgumentException("Makale bulunamadı");
+        }
+
+        Article article = articleOpt.get();
+        article.setAssignedReviewer(reviewer);
+        article.setStatus("Değerlendirmede");
+
+        return articleRepository.save(article);
+    }
+
+    public Article reviewArticle(String reviewText, String trackingNumber) {
+        Optional<Article> articleOpt = articleRepository.findByTrackingNumber(trackingNumber);
+
+        if (articleOpt.isEmpty()) {
+            throw new IllegalArgumentException("Makale bulunamadı");
+        }
+
+        Article article = articleOpt.get();
+        article.setReviewComment(reviewText);
+        article.setStatus("Değerlendirildi");
+        article.setReviewDate(new Date());
+        article.setReviewedFile(article.getFile()); //commenti mevcut pdf'in sonuna ekle
         return articleRepository.save(article);
     }
 
@@ -172,7 +248,7 @@ public class ArticleService {
         String anonymizedText = anonymizeText(extractedText);
 
         // 3. Create a new PDF with anonymized text
-        byte[] anonymizedPdfBytes = createAnonymizedPDF(anonymizedText, article.getFileName());
+        byte[] anonymizedPdfBytes = createAnonymizedPDF(anonymizedText, article.getFile());
 
         // 4. Update the article with anonymized file
         article.setAnonymizedFile(anonymizedPdfBytes);
@@ -222,7 +298,7 @@ public class ArticleService {
         return anonymizedText.toString();
     }
 
-    private byte[] createAnonymizedPDF(String anonymizedText, String fileName) throws IOException {
+    private byte[] createAnonymizedPDF(String anonymizedText, byte[] pdfBytes) throws IOException {
         try (PDDocument document = new PDDocument();
              ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
 
@@ -340,7 +416,7 @@ public class ArticleService {
 
         int count = 0;
         for (Article article : articles) {
-            if (article.getStatus().equals("Kabul")) {
+            if (article.getStatus().equals("Değerlendirmede")) {
                 count++;
             }
         }
@@ -357,7 +433,7 @@ public class ArticleService {
 
         int count = 0;
         for (Article article : articles) {
-            if (article.getStatus().equals("Tamamlandı")) {
+            if (article.getStatus().equals("Değerlendirildi")) {
                 count++;
             }
         }

@@ -1,12 +1,14 @@
 package com.example.documentanonymization.controller;
 
 import com.example.documentanonymization.entity.Article;
+import com.example.documentanonymization.entity.Reviewer;
 import com.example.documentanonymization.service.ArticleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
 
 import java.io.IOException;
 
@@ -44,6 +46,11 @@ public class ArticleController {
         return articleService.viewAnonimizeArticleFile(trackingNumber);
     }
 
+    @GetMapping("/reviewer/{id}")
+    public ResponseEntity<?> getArticlesByReviewerId(@PathVariable Long id) {
+        return articleService.getArticlesByReviewerId(id);
+    }
+
     @PostMapping("/create")
     public ResponseEntity<Article> createArticle(@RequestParam("file") MultipartFile file, @RequestParam("email") String email) {
         try {
@@ -73,6 +80,30 @@ public class ArticleController {
         } catch (Exception e) {
             System.err.println("Beklenmeyen hata: " + e.getMessage());
             e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Beklenmeyen hata: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/assignReviewer/{trackingNumber}")
+    public ResponseEntity<?> assignReviewer(@PathVariable String trackingNumber, @RequestBody Reviewer reviewer) {
+        try {
+            Article updatedArticle = articleService.assignReviewer(trackingNumber, reviewer);
+            return ResponseEntity.ok(updatedArticle);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Beklenmeyen hata: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/review/{trackingNumber}")
+    public ResponseEntity<?> reviewArticle(MultipartHttpServletRequest request) {
+        try {
+            String reviewText = request.getParameter("reviewText");
+            String trackingNumber = request.getParameter("trackingNumber");
+            Article updatedArticle = articleService.reviewArticle(reviewText, trackingNumber);
+            return ResponseEntity.ok(updatedArticle);
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Beklenmeyen hata: " + e.getMessage());
         }

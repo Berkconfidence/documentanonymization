@@ -21,6 +21,11 @@ public class MessageController {
 
     public MessageController() {}
 
+    @GetMapping
+    public List<MessageDto> getAllMessages() {
+        return messageService.getAllMessages();
+    }
+
     @GetMapping("/email/{email}")
     public List<MessageDto> getMessageByEmail(@PathVariable String email) {
         return messageService.getMessageByEmail(email);
@@ -30,6 +35,16 @@ public class MessageController {
     public ResponseEntity<Message> createMessage(@RequestParam("email") String email, @RequestParam("content") String content) {
         try {
             Message message = messageService.createMessage(email, content);
+            return ResponseEntity.ok(message);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(null);
+        }
+    }
+    @PostMapping("/admincreate")
+    public ResponseEntity<Message> createAdminMessage(@RequestParam("email") String email, @RequestParam("content") String content) {
+        try {
+            Message message = messageService.createAdminMessage(email, content);
             return ResponseEntity.ok(message);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

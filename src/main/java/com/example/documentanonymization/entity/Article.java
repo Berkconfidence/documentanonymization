@@ -24,11 +24,14 @@ public class Article {
     @Column(nullable = true, columnDefinition = "LONGBLOB")
     private byte[] reviewedFile; // Hakem değerlendirmesi sonrası belge
 
+    @Column(nullable = true)
+    private String reviewComment;
+
     @Column(nullable = false)
     private String authorEmail;
 
     @Column(nullable = false)
-    private String status;   // "Kabul", "İncelemede", "İncelendi", "Revize" gibi durumlar
+    private String status;   // "Alındı", "Değerlendirmede", "Değerlendirildi", "Yazara İletildi","Revize"
 
     @Column(nullable = false)
     private String trackingNumber;
@@ -77,6 +80,14 @@ public class Article {
 
     public void setReviewedFile(byte[] reviewedFile) {
         this.reviewedFile = reviewedFile;
+    }
+
+    public String getReviewComment() {
+        return reviewComment;
+    }
+
+    public void setReviewComment(String reviewComment) {
+        this.reviewComment = reviewComment;
     }
 
     public String getAuthorEmail() {

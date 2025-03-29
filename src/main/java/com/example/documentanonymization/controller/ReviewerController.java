@@ -8,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 
-import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -23,6 +22,16 @@ public class ReviewerController {
     @GetMapping("/all")
     public ResponseEntity<?> getAllReviewers() {
         return reviewerService.getAllReviewers();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getReviewer(@PathVariable long id) {
+        return reviewerService.getReviewerById(id);
+    }
+
+    @GetMapping("/trackingnumber/{id}")
+    public ResponseEntity<?> getReviewerByArticleNumber(@PathVariable String trackingNumber) {
+        return reviewerService.getReviewerByArticleNumber(trackingNumber);
     }
 
     @PostMapping("/create")

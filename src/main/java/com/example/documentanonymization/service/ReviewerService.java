@@ -1,5 +1,6 @@
 package com.example.documentanonymization.service;
 
+import com.example.documentanonymization.dto.ArticleDto;
 import com.example.documentanonymization.dto.ReviewerDto;
 import com.example.documentanonymization.entity.Article;
 import com.example.documentanonymization.entity.Reviewer;
@@ -52,6 +53,38 @@ public class ReviewerService {
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(dtoList);
+    }
+
+    public ResponseEntity<ReviewerDto> getReviewerById(long id) {
+        return reviewerRepository.findById(id)
+                .map(reviewer -> {
+                    int activeArticleCount = articleService.getReviewersActiveArticlesCount(reviewer);
+                    int completedArticleCount = articleService.getReviewersCompletedArticlesCount(reviewer);
+                    ReviewerDto dto = new ReviewerDto();
+                    dto.setId(reviewer.getId());
+                    dto.setName(reviewer.getName());
+                    dto.setEmail(reviewer.getEmail());
+                    dto.setSpecializations(reviewer.getSpecializations());
+                    dto.setActiveReviewsCount(activeArticleCount);
+                    dto.setCompletedReviewsCount(completedArticleCount);
+                    return ResponseEntity.ok(dto);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    public ResponseEntity<Reviewer> getReviewerByArticleNumber(String trackingNumber) {
+        ResponseEntity<ArticleDto> article = articleService.getArticleByTrackingNumber(trackingNumber);
+
+        if (article.getStatusCode().isError()) {
+            return ResponseEntity.status(article.getStatusCode()).body(null);
+        }
+        ArticleDto articleDto = article.getBody();
+        if (articleDto == null) {
+            return ResponseEntity.notFound().build();
+        }
+        Reviewer reviewer = articleDto.getAssignedReviewer();
+
+        return ResponseEntity.ok(reviewer);
     }
 
     public List<String> parseSpecializations(String specializations) {

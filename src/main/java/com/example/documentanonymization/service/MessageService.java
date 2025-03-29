@@ -18,6 +18,20 @@ public class MessageService {
 
     public MessageService() {}
 
+    public List<MessageDto> getAllMessages() {
+        List<Message> messages = messageRepository.findAll();
+        return messages.stream()
+                .map(message -> {
+                    MessageDto dto = new MessageDto();
+                    dto.setSenderEmail(message.getSenderEmail());
+                    dto.setReceiverEmail(message.getReceiverEmail());
+                    dto.setContent(message.getContent());
+                    dto.setSentDate(message.getSentDate());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
     public List<MessageDto> getMessageByEmail(String email) {
         List<Message> allMessages = messageRepository.findAll();
         return allMessages.stream()
@@ -38,6 +52,16 @@ public class MessageService {
         Message message = new Message();
         message.setSenderEmail(email);
         message.setReceiverEmail("admin@gmail.com");
+        message.setContent(content);
+        message.setSentDate(new Date());
+        messageRepository.save(message);
+        return message;
+    }
+
+    public Message createAdminMessage(String email, String content) {
+        Message message = new Message();
+        message.setSenderEmail("admin@gmail.com");
+        message.setReceiverEmail(email);
         message.setContent(content);
         message.setSentDate(new Date());
         messageRepository.save(message);

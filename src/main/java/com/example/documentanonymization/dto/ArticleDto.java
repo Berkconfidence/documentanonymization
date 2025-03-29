@@ -1,5 +1,7 @@
 package com.example.documentanonymization.dto;
 
+import com.example.documentanonymization.entity.Reviewer;
+
 import java.util.Date;
 
 public class ArticleDto {
@@ -11,6 +13,7 @@ public class ArticleDto {
     private String trackingNumber;
     private Date submissionDate;
     private Date reviewDate;
+    private Reviewer assignedReviewer;
 
     public String getFileName() {
         return fileName;
@@ -66,5 +69,13 @@ public class ArticleDto {
 
     public void setReviewDate(Date reviewDate) {
         this.reviewDate = reviewDate;
+    }
+
+    public Reviewer getAssignedReviewer() {
+        return assignedReviewer;
+    }
+
+    public void setAssignedReviewer(Reviewer assignedReviewer) {
+        this.assignedReviewer = assignedReviewer;
     }
 }
