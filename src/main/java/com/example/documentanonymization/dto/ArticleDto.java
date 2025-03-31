@@ -14,6 +14,7 @@ public class ArticleDto {
     private Date submissionDate;
     private Date reviewDate;
     private Reviewer assignedReviewer;
+    private String assignedReviewerName;
 
     public String getFileName() {
         return fileName;
@@ -77,5 +78,21 @@ public class ArticleDto {
 
     public void setAssignedReviewer(Reviewer assignedReviewer) {
         this.assignedReviewer = assignedReviewer;
+        if (assignedReviewer != null) {
+            this.assignedReviewerName = assignedReviewer.getName();
+        } else {
+            this.assignedReviewerName = null;
+        }
+    }
+
+    public String getAssignedReviewerName() {
+        if (assignedReviewer != null) {
+            return assignedReviewer.getName();
+        }
+        return null;
+    }
+
+    public void setAssignedReviewerName(String assignedReviewerName) {
+        this.assignedReviewerName = assignedReviewerName;
     }
 }

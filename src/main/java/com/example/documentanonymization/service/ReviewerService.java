@@ -83,6 +83,9 @@ public class ReviewerService {
             return ResponseEntity.notFound().build();
         }
         Reviewer reviewer = articleDto.getAssignedReviewer();
+        if (reviewer == null) {
+            return ResponseEntity.noContent().build(); // Atanmış reviewer yoksa 204 No Content dön
+        }
 
         return ResponseEntity.ok(reviewer);
     }

@@ -29,7 +29,7 @@ public class ReviewerController {
         return reviewerService.getReviewerById(id);
     }
 
-    @GetMapping("/trackingnumber/{id}")
+    @GetMapping("/trackingnumber/{trackingNumber}")
     public ResponseEntity<?> getReviewerByArticleNumber(@PathVariable String trackingNumber) {
         return reviewerService.getReviewerByArticleNumber(trackingNumber);
     }

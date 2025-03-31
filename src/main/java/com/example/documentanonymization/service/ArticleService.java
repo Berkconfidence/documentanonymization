@@ -5,15 +5,29 @@ import com.example.documentanonymization.entity.Article;
 import com.example.documentanonymization.entity.Reviewer;
 import com.example.documentanonymization.repository.ArticleRepository;
 import com.example.documentanonymization.repository.ReviewerRepository;
+import com.spire.pdf.FileFormat;
+import com.spire.pdf.PdfDocument;
+import com.spire.pdf.PdfPageBase;
+import com.spire.pdf.graphics.PdfBrushes;
+import com.spire.pdf.graphics.PdfFont;
+import com.spire.pdf.graphics.PdfFontFamily;
+import com.spire.pdf.graphics.PdfImage;
+import com.spire.pdf.texts.PdfTextFindOptions;
+import com.spire.pdf.texts.PdfTextFinder;
+import com.spire.pdf.texts.PdfTextFragment;
+import com.spire.pdf.texts.TextFindParameter;
+import com.spire.pdf.utilities.PdfImageHelper;
+import com.spire.pdf.utilities.PdfImageInfo;
 import edu.stanford.nlp.pipeline.CoreDocument;
 import edu.stanford.nlp.pipeline.CoreEntityMention;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.common.PDRectangle;
-import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.Size;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -22,9 +36,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayOutputStream;
+import javax.imageio.ImageIO;
+import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -79,6 +98,8 @@ public class ArticleService {
                     dto.setSubmissionDate(article.getSubmissionDate());
                     dto.setReviewDate(article.getReviewDate());
 
+                    dto.setAssignedReviewer(article.getAssignedReviewer());
+                    dto.setAssignedReviewerName(dto.getAssignedReviewerName());
                     return ResponseEntity.ok(dto);
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -241,18 +262,23 @@ public class ArticleService {
         Article article = articleOpt.get();
         byte[] pdfBytes = article.getFile();
 
+
         // 1. Extract text from PDF
         String extractedText = extractTextFromPDF(pdfBytes);
 
         // 2. Anonymize text using Stanford NLP
-        String anonymizedText = anonymizeText(extractedText);
+        HashMap<String, String> anonymizedText = anonymizeText(extractedText);
 
         // 3. Create a new PDF with anonymized text
-        byte[] anonymizedPdfBytes = createAnonymizedPDF(anonymizedText, article.getFile());
+        byte[] anonymizePdf = anonymizePdf(article.getFile(), anonymizedText);
 
-        // 4. Update the article with anonymized file
-        article.setAnonymizedFile(anonymizedPdfBytes);
+        //4. Extract and replace images
+        byte[] blurredPdf = extractBlurAndReplaceImages(anonymizePdf);
+
+        // 5. Update the article with anonymized file
+        article.setAnonymizedFile(blurredPdf);
         article.setStatus("Anonimleştirildi");
+        //
 
         return articleRepository.save(article);
     }
@@ -267,7 +293,7 @@ public class ArticleService {
         }
     }
 
-    private String anonymizeText(String text) {
+    private HashMap<String, String> anonymizeText(String text) {
         // Configure Stanford CoreNLP
         Properties props = new Properties();
         props.setProperty("annotators", "tokenize, ssplit, pos, lemma, ner");
@@ -280,111 +306,191 @@ public class ArticleService {
         // Create a mutable string for replacement
         StringBuilder anonymizedText = new StringBuilder(text);
 
-        // Process all entity mentions for anonymization
-        // Tersten işleme yapılmasının nedeni: Önceki değişikliklerin sonraki varlıkların pozisyonlarını etkilememesi için
+        // Tanınan varlıklar için liste oluştur
         List<CoreEntityMention> entities = doc.entityMentions();
         Collections.reverse(entities);
 
+        // Anonimleştirilecek varlık türlerini genişlet
+        Set<String> allowedTypes = new HashSet<>(Arrays.asList(
+                "PERSON", "ORGANIZATION", "LOCATION", "CITY",
+                "COUNTRY", "EMAIL", "NATIONALITY", "SCHOOL", "UNIVERSITY"
+        ));
+
+        HashMap<String, String> replacements = new HashMap<>();
+
         for (CoreEntityMention entity : entities) {
             String entityType = entity.entityType();
-            int start = entity.charOffsets().first();
-            int end = entity.charOffsets().second();
 
-            // Replace with generic placeholder based on entity type
-            String replacement = "[" + entityType + "]";
-            anonymizedText.replace(start, end, replacement);
+            // Sadece istediğimiz türleri anonimleştir
+            if (allowedTypes.contains(entityType)) {
+                int start = entity.charOffsets().first();
+                int end = entity.charOffsets().second();
+                String replacement = "[" + entityType + "]";
+
+                replacements.put(entity.text(), replacement);
+                anonymizedText.replace(start, end, replacement);
+            }
         }
 
-        return anonymizedText.toString();
+        Pattern uniPattern = Pattern.compile("\\b(?:[A-Z][a-z]+(?:\\s(?:of|for|and|the|at|in)\\s)?)+University\\b|\\b[A-Z][a-z]+ Institute of Technology\\b");
+        Matcher uniMatcher = uniPattern.matcher(text);
+
+        while (uniMatcher.find()) {
+            String match = uniMatcher.group();
+            if (!replacements.containsKey(match)) {
+                replacements.put(match, "[ORGANIZATION]");
+            }
+        }
+
+        return replacements;
     }
 
-    private byte[] createAnonymizedPDF(String anonymizedText, byte[] pdfBytes) throws IOException {
-        try (PDDocument document = new PDDocument();
-             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+    public byte[] anonymizePdf(byte[] pdfBytes,HashMap<String, String> anonymizedText) {
+        // PDF'i yükle
+        PdfDocument doc = new PdfDocument();
+        doc.loadFromBytes(pdfBytes);
 
-            PDPage page = new PDPage(PDRectangle.A4);
-            document.addPage(page);
+        HashMap<String,String> replacements = anonymizedText;
 
-            PDPageContentStream contentStream = new PDPageContentStream(document, page);
-            contentStream.beginText();
-            contentStream.setFont(PDType1Font.HELVETICA, 12);
-            contentStream.newLineAtOffset(50, 700);
+        // Tüm sayfalarda değiştirme yap
+        for (int i = 0; i < doc.getPages().getCount(); i++) {
+            PdfPageBase page = doc.getPages().get(i);
 
-            float yPosition = 700;
+            // Metin bul
+            PdfTextFinder finder = new PdfTextFinder(page);
+            PdfTextFindOptions options = new PdfTextFindOptions();
+            options.setTextFindParameter(EnumSet.of(TextFindParameter.WholeWord));
 
-            // Split text into lines and sanitize each line
-            String[] lines = anonymizedText.split("\n");
-            for (String line : lines) {
-                // Sanitize the text by removing problematic characters
-                String sanitizedLine = sanitizeText(line);
+            // Bulunan her metin için
+            PdfFont font = new PdfFont(PdfFontFamily.Helvetica, 10);
+            for (Map.Entry<String, String> entry : replacements.entrySet()) {
 
-                // Skip empty lines
-                if (sanitizedLine.trim().isEmpty()) {
-                    continue;
-                }
+                List<PdfTextFragment> fragments = finder.find(entry.getKey(), options);
+                for (PdfTextFragment fragment : fragments) {
+                    // Metin koordinatlarını al
+                    Rectangle2D rec = fragment.getBounds()[0];
 
-                // Check if we need a new page
-                if (yPosition < 50) {
-                    contentStream.endText();
-                    contentStream.close();
+                    // Eski metni beyaz dikdörtgenle kapla
+                    page.getCanvas().drawRectangle(PdfBrushes.getWhite(), rec);
 
-                    page = new PDPage(PDRectangle.A4);
-                    document.addPage(page);
-
-                    // Create new content stream and reassign it to the variable
-                    contentStream = new PDPageContentStream(document, page);
-                    contentStream.beginText();
-                    contentStream.setFont(PDType1Font.HELVETICA, 12);
-                    yPosition = 700;
-                    contentStream.newLineAtOffset(50, yPosition);
-                }
-
-                // Process line text in chunks
-                int chunkSize = 80;
-                for (int i = 0; i < sanitizedLine.length(); i += chunkSize) {
-                    int end = Math.min(i + chunkSize, sanitizedLine.length());
-                    String chunk = sanitizedLine.substring(i, end);
-
-                    contentStream.showText(chunk);
-
-                    if (i + chunkSize < sanitizedLine.length()) {
-                        contentStream.newLineAtOffset(0, -15);
-                        yPosition -= 15;
+                    // Yeni metni aynı konuma yaz
+                    if(entry.getValue().equals("[PERSON]")) {
+                        page.getCanvas().drawString("[PER]", font, PdfBrushes.getBlue(), rec.getX(), rec.getY()-1);
                     }
-                }
+                    else if(entry.getValue().equals("[ORGANIZATION]")) {
+                        page.getCanvas().drawString("[org]", font, PdfBrushes.getBlue(), rec.getX()-1, rec.getY()-1);
+                    }
+                    else if(entry.getValue().equals("[LOCATION]")) {
+                        page.getCanvas().drawString("[LOC]", font, PdfBrushes.getBlue(), rec.getX()-1, rec.getY()-1);
+                    }
+                    else if(entry.getValue().equals("[NATIONALITY]")) {
+                        page.getCanvas().drawString("[NATION]", font, PdfBrushes.getBlue(), rec.getX()-1, rec.getY()-1);
+                    }
+                    else
+                        page.getCanvas().drawString(entry.getValue(), font, PdfBrushes.getBlue(), rec.getX(), rec.getY()-1);
 
-                contentStream.newLineAtOffset(0, -15);
-                yPosition -= 15;
+                }
             }
 
-            contentStream.endText();
-            contentStream.close();
-
-            document.save(outputStream);
-            return outputStream.toByteArray();
         }
+        // Bellek içinde byte dizisine dönüştür
+        java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
+        doc.saveToStream(outputStream);
+        byte[] result = outputStream.toByteArray();
+
+        // Kaynakları serbest bırak
+        doc.close();
+
+        return result;
     }
 
-    private String sanitizeText(String text) {
-        if (text == null) {
-            return "";
-        }
+    public byte[] extractBlurAndReplaceImages(byte[] pdfBytes) {
+        try {
+            // OpenCV kütüphanesini yükle
+            nu.pattern.OpenCV.loadLocally();
 
-        // Remove control characters and other problematic characters
-        StringBuilder sanitized = new StringBuilder();
-        for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-            // Skip control characters (0-31) and other problematic ones
-            if (c > 31 && c < 127) {
-                sanitized.append(c);
-            } else if (c == '\t') {
-                // Replace tabs with spaces
-                sanitized.append("    ");
+            System.out.println("OpenCV Sürümü: " + Core.VERSION);
+
+            // PDF dosyasını yükle
+            PdfDocument doc = new PdfDocument();
+            doc.loadFromBytes(pdfBytes);
+
+            // Son sayfayı al
+            int lastPageIndex = doc.getPages().getCount() - 1;
+            System.out.println("Son sayfa bulundu: " + (lastPageIndex + 1));
+            PdfPageBase page = doc.getPages().get(lastPageIndex);
+
+            // Resimleri al
+            PdfImageHelper imageHelper = new PdfImageHelper();
+            PdfImageInfo[] imageInfos = imageHelper.getImagesInfo(page);
+            System.out.println("Son sayfada " + imageInfos.length + " resim bulundu");
+
+            // Her resim için işlem yap
+            for (int i = 0; i < imageInfos.length; i++) {
+                try {
+                    // Resmi al
+                    BufferedImage originalImage = imageInfos[i].getImage();
+
+                    // Geçici bir dosyaya kaydet
+                    String tempImagePath = "C:\\Users\\berkc\\Downloads\\temp_image_" + i + ".png";
+                    ImageIO.write(originalImage, "PNG", new File(tempImagePath));
+
+                    // OpenCV ile bulanıklaştır
+                    Mat source = Imgcodecs.imread(tempImagePath);
+                    if (source.empty()) {
+                        System.out.println("Görüntü yüklenemedi: " + tempImagePath);
+                        continue;
+                    }
+
+                    // Bulanıklaştırma işlemleri
+                    Mat destination = new Mat(source.rows(), source.cols(), source.type());
+                    int kernelSize = 45;
+                    Imgproc.GaussianBlur(source, destination, new Size(kernelSize, kernelSize), 0);
+
+                    for (int j = 0; j < 3; j++) {
+                        Imgproc.GaussianBlur(destination, destination, new Size(kernelSize, kernelSize), 8);
+                    }
+
+                    // Bulanıklaştırılmış görüntüyü kaydet
+                    String blurredImagePath = "C:\\Users\\berkc\\Downloads\\temp_blurred_" + i + ".png";
+                    boolean success = Imgcodecs.imwrite(blurredImagePath, destination);
+
+                    if (success) {
+                        System.out.println("Bulanıklaştırılmış görüntü kaydedildi: " + blurredImagePath);
+
+                        // Bulanıklaştırılmış görüntüyü PDF'e yerleştir
+                        PdfImage blurredImage = PdfImage.fromFile(blurredImagePath);
+                        imageHelper.replaceImage(imageInfos[i], blurredImage);
+                        System.out.println((i+1) + ". resim bulanıklaştırılıp değiştirildi");
+                    } else {
+                        System.out.println("Görüntü kaydedilemedi!");
+                    }
+
+                    // Kaynakları serbest bırak
+                    source.release();
+                    destination.release();
+
+                    // Geçici dosyaları temizle
+                    new File(tempImagePath).delete();
+                    new File(blurredImagePath).delete();
+
+                } catch (Exception e) {
+                    System.err.println((i+1) + ". resim işlenirken hata oluştu: " + e.getMessage());
+                    e.printStackTrace();
+                }
             }
-            // Skip all other control characters
-        }
 
-        return sanitized.toString();
+
+            // Kaydet ve kapat
+            doc.saveToFile("C:\\Users\\berkc\\Downloads\\bitti.pdf");
+            doc.close();
+            return null;
+
+        } catch (Exception e) {
+            System.err.println("İşlem sırasında hata oluştu: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public synchronized String generateTrackingNumber() {

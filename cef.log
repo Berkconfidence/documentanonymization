@@ -1,0 +1,6 @@
+[0331/003802.454:ERROR:gpu_init.cc(523)] Passthrough is not supported, GL is disabled, ANGLE is 
+[0331/003803.289:WARNING:task_impl.cc(20)] No task runner for threadId 6
+[0331/003803.312:WARNING:task_impl.cc(20)] No task runner for threadId 6
+[0331/004141.903:ERROR:gpu_init.cc(523)] Passthrough is not supported, GL is disabled, ANGLE is 
+[0331/004142.650:WARNING:task_impl.cc(20)] No task runner for threadId 6
+[0331/004142.664:WARNING:task_impl.cc(20)] No task runner for threadId 6
