@@ -21,7 +21,7 @@ public class Reviewer {
 
     @ElementCollection
     @CollectionTable(name = "reviewer_specializations", joinColumns = @JoinColumn(name = "reviewer_id"))
-    private List<String> specializations = new ArrayList<>();;
+    private List<String> specializations = new ArrayList<>();
 
     public Long getId() {
         return id;

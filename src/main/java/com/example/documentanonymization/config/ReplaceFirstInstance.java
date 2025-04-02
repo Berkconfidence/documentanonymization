@@ -89,319 +89,180 @@ public class ReplaceFirstInstance {
         }
     }
 
-    public static void advancedTextClassification() throws IOException {
-        // PDF'i yükle
-        File file = new File("C:\\Users\\berkc\\Downloads\\örnek_makale1.pdf");
-        PDDocument document = PDDocument.load(file);
-
-        try {
-            PDFTextStripper stripper = new PDFTextStripper();
-            String text = stripper.getText(document);
-
-            // Metni temizle ve kelime dizisine dönüştür
-            String[] words = preprocessText(text);
-
-            // Kategori haritası
-            Map<String, List<String>> categories = createCategoryKeywords();
-
-            // TF-IDF hesapla
-            Map<String, Double> scores = calculateTFIDF(words, categories);
-
-            // En yüksek puanlı kategoriyi bul
-            String dominantCategory = findDominantCategoryByTFIDF(scores);
-            System.out.println("Makalenin muhtemel alanı (TF-IDF): " + dominantCategory);
-            System.out.println("TF-IDF puanları: " + scores);
-
-        } finally {
-            document.close();
-        }
-    }
-
     private static Map<String, List<String>> createCategoryKeywords() {
         Map<String, List<String>> categories = new HashMap<>();
 
-        categories.put("Artificial Intelligence and Machine Learning", Arrays.asList(
-                "artificial intelligence", "machine learning", "deep learning", "neural network",
-                "training data", "algorithm", "supervised learning", "unsupervised learning",
-                "classification", "clustering", "regression", "decision tree", "random forest",
-                "natural language processing", "nlp", "computer vision", "generative ai",
-                "gpt", "chatgpt", "transformer", "reinforcement learning", "ai",
-
-                // Eklenenler (100 yeni kelime)
-                "activation function", "adversarial learning", "ai ethics", "ai safety",
-                "attention mechanism", "autoencoder", "backpropagation", "bayesian networks",
-                "beam search", "bias-variance tradeoff", "bidirectional lstm", "biggan",
-                "capsule network", "character-level modeling", "cnn", "contrastive learning",
-                "convolutional neural network", "cost function", "cross-entropy loss", "cyclegan",
-                "data augmentation", "dataset balancing", "deep belief network", "deep generative model",
-                "deep reinforcement learning", "differentiable programming", "dimensionality reduction",
-                "discriminator", "dropout", "dynamic computation graphs", "embedding",
-                "encoder-decoder", "epoch", "error function", "explainable ai",
-                "feature extraction", "feature selection", "feedforward neural network", "fine-tuning",
-                "forward propagation", "fuzzy logic", "gan", "generalization",
-                "gradient boosting", "gradient clipping", "gradient descent", "graph neural network",
-                "gru", "hallucination", "hierarchical clustering", "image segmentation",
-                "imitation learning", "in-context learning", "inductive bias", "instance-based learning",
-                "inverse reinforcement learning", "jax", "k-means clustering", "kernel method",
-                "latent variable", "learning rate", "lstm", "markov decision process",
-                "meta-learning", "mixture of experts", "mode collapse", "monte carlo tree search",
-                "multi-modal learning", "multi-task learning", "nas", "neuro-symbolic ai",
-                "next-token prediction", "nlp pipeline", "object detection", "one-shot learning",
-                "optical character recognition", "optimizers", "parameter tuning", "perceptron",
-                "policy gradient", "pos tagging", "pre-trained model", "predictive modeling",
-                "q-learning", "quantization", "reinforcement signal", "residual networks",
-                "self-attention", "self-supervised learning", "semi-supervised learning", "sequence modeling",
-                "sgd", "speech recognition", "stable diffusion", "stylegan",
-                "subword tokenization", "syntactic parsing", "temporal difference learning", "tensorflow",
-                "text-to-image", "text-to-speech", "turing test", "unsupervised pretraining",
-                "variational autoencoder", "vector embeddings", "word2vec", "zero-shot learning"
+        // Artificial Intelligence and Machine Learning (AI/ML)
+        categories.put("Deep Learning", Arrays.asList(
+                "deep learning", "neural network", "cnn", "rnn", "lstm", "transformer",
+                "backpropagation", "gradient descent", "activation function", "dropout",
+                "batch normalization", "overfitting", "underfitting", "attention mechanism", "autoencoder",
+                "generative adversarial networks", "gan", "reinforcement learning", "q-learning", "policy gradient",
+                "supervised learning", "unsupervised learning", "semi-supervised learning", "self-supervised learning", "transfer learning"
         ));
 
-        categories.put("Human-Computer Interaction", Arrays.asList(
-                "human-computer interaction", "hci", "user interface", "ui", "user experience",
-                "ux", "usability", "brain-computer interface", "bci", "augmented reality",
-                "virtual reality", "ar", "vr", "mixed reality", "gesture recognition",
-                "interaction design", "user-centered design", "human factors",
-
-                // Eklenenler (100 yeni kelime)
-                "adaptive interfaces", "affective computing", "biometrics", "brain-machine interface",
-                "cognitive ergonomics", "cognitive load", "computer-mediated communication", "context-aware computing",
-                "crossmodal interaction", "digital accessibility", "digital ergonomics", "embodied interaction",
-                "emotion recognition", "ergonomics", "eye gaze tracking", "eye movement analysis",
-                "facial expression recognition", "fitts law", "force feedback", "gaze-based interaction",
-                "gaze estimation", "gesture-based interaction", "haptic feedback", "haptic interfaces",
-                "head-mounted display", "hmd", "human augmentation", "human-centered ai",
-                "immersive computing", "immersive interaction", "invisible computing", "kinesthetic feedback",
-                "kinesthetic learning", "kinaesthetic interaction", "locomotion interfaces", "man-machine interaction",
-                "mental workload", "metaverse", "mocap", "motion capture",
-                "multimodal interaction", "multisensory feedback", "neural interface", "neuromorphic computing",
-                "non-verbal communication", "perception engineering", "perception-based computing", "pervasive computing",
-                "physiological computing", "psychophysiology", "qualitative hci", "quantified self",
-                "reality-virtuality continuum", "remote presence", "sensory augmentation", "sensory substitution",
-                "social computing", "social presence", "spatial computing", "speech interaction",
-                "speech processing", "subliminal interaction", "synchronous collaboration", "tangible computing",
-                "tangible interfaces", "telepresence", "touchless interaction", "ubiquitous computing",
-                "user adaptation", "user cognition", "user emotion", "user engagement",
-                "user modeling", "user perception", "user personalization", "user profiling",
-                "user state detection", "user trust", "user-centered ai", "visual ergonomics",
-                "wearable computing", "wearable hci", "wearable sensors", "xr",
-                "zero-ui", "brain signal processing", "neuroergonomics", "brainwave interaction",
-                "eeg", "ecg", "fnirs", "meg",
-                "tms", "brain decoding", "brain stimulation", "neurofeedback",
-                "neural signal processing", "cognitive neuroscience", "brain-inspired computing", "affective hci"
+        categories.put("Natural Language Processing", Arrays.asList(
+                "nlp", "tokenization", "stemming", "lemmatization", "word embedding",
+                "word2vec", "glove", "bert", "transformer", "pos tagging",
+                "named entity recognition", "ner", "dependency parsing", "sentiment analysis", "language modeling",
+                "seq2seq", "attention mechanism", "machine translation", "text classification", "word segmentation",
+                "text-to-speech", "speech recognition", "zero-shot learning", "few-shot learning", "pretrained model"
         ));
 
-        categories.put("Big Data and Data Analytics", Arrays.asList(
-                "big data", "data analytics", "data mining", "data visualization", "hadoop",
-                "spark", "data warehouse", "time series", "data processing", "data science",
-                "predictive analytics", "business intelligence", "bi", "etl", "data lake",
-                "nosql", "data stream", "tableau", "power bi",
-
-                // Eklenenler (100 yeni kelime)
-                "apache flink", "apache kafka", "apache storm", "aws glue",
-                "batch processing", "beam", "benchmarking", "business analytics",
-                "churn analysis", "clickstream data", "columnar storage", "complex event processing",
-                "confluent kafka", "cross-validation", "customer segmentation", "cyber analytics",
-                "data aggregation", "data anomaly detection", "data blending", "data catalog",
-                "data cleaning", "data cube", "data engineering", "data ethics",
-                "data governance", "data imputation", "data integration", "data lakehouse",
-                "data lineage", "data mart", "data monetization", "data observability",
-                "data ops", "data pipeline", "data quality", "data replication",
-                "data silos", "data storytelling", "data transformation", "data wrangling",
-                "decision support system", "delta lake", "descriptive analytics", "distributed computing",
-                "druid", "edge analytics", "elasticsearch", "event-driven architecture",
-                "exabyte", "feature engineering", "forecasting", "fuzzy clustering",
-                "geospatial analytics", "google bigquery", "graph analytics", "greenplum",
-                "hbase", "high-dimensional data", "hot data", "ibm cognos",
-                "in-memory computing", "iot analytics", "jupyter notebook", "k-means clustering",
-                "key-value store", "kpi tracking", "lambda architecture", "live data processing",
-                "log analysis", "machine data", "mapreduce", "mlflow",
-                "mongodb", "multi-tenant analytics", "olap", "oltp",
-                "pandas", "parquet", "petabyte", "phishing detection analytics",
-                "prescriptive analytics", "python for data science", "quantitative analytics", "query optimization",
-                "real-time analytics", "recommendation systems", "redshift", "revenue forecasting",
-                "schema evolution", "semi-structured data", "sentiment analysis", "snowflake",
-                "spatial data", "sql analytics", "stream processing", "teradata",
-                "time-series forecasting", "variance analysis", "vector database", "zookeeper"
+        categories.put("Computer Vision", Arrays.asList(
+                "computer vision", "image processing", "feature extraction", "image segmentation", "object detection",
+                "yolo", "faster r-cnn", "ssd", "edge detection", "hough transform",
+                "contour detection", "image classification", "face recognition", "pose estimation", "semantic segmentation",
+                "instance segmentation", "optical flow", "stereo vision", "depth estimation", "gan for images",
+                "ocr", "image super-resolution", "data augmentation", "visual attention", "self-supervised vision"
         ));
 
-        categories.put("Cybersecurity", Arrays.asList(
-                "cybersecurity", "security", "encryption", "cryptography", "firewall",
-                "malware", "virus", "ransomware", "phishing", "authentication", "authorization",
-                "vpn", "secure coding", "penetration testing", "vulnerability", "exploit",
-                "zero-day", "data breach", "digital forensics", "intrusion detection",
-
-                // Eklenenler (100 yeni kelime)
-                "access control", "adversarial attack", "aes", "anti-virus",
-                "api security", "attack vector", "authentication protocol", "biometric authentication",
-                "blue team", "botnet", "brute force attack", "buffer overflow",
-                "bug bounty", "certificate authority", "cissp", "cloud security",
-                "command injection", "compliance", "countermeasure", "credential stuffing",
-                "cross-site scripting", "cyber threat intelligence", "cyber warfare", "cyber hygiene",
-                "data encryption standard", "data leakage prevention", "ddos attack", "deep packet inspection",
-                "defense in depth", "disk encryption", "dns poisoning", "domain hijacking",
-                "dos attack", "eavesdropping", "elliptic curve cryptography", "ethical hacking",
-                "event correlation", "federated identity", "fingerprinting", "forensic analysis",
-                "gpg", "hash function", "honeypot", "hsts",
-                "identity and access management", "incident response", "infosec", "intrusion prevention system",
-                "iot security", "ipsec", "iso 27001", "key exchange",
-                "kerberos", "least privilege principle", "mac spoofing", "man-in-the-middle attack",
-                "multi-factor authentication", "nist", "obfuscation", "oauth",
-                "open redirect", "owasp", "pass-the-hash attack", "password cracking",
-                "password hashing", "patch management", "pgp", "physical security",
-                "pii protection", "privilege escalation", "public key infrastructure", "quantum cryptography",
-                "rce (remote code execution)", "red team", "reverse engineering", "risk assessment",
-                "rootkit", "rsa", "saml", "sandboxing",
-                "sensitive data exposure", "session hijacking", "side-channel attack", "signature-based detection",
-                "social engineering", "software security", "spam filtering", "spyware",
-                "sql injection", "ssh", "ssl/tls", "sso",
-                "steganography", "supply chain attack", "symmetric encryption", "tamper detection",
-                "threat hunting", "threat modeling", "two-factor authentication", "usb malware",
-                "vishing", "vpn tunneling", "web application firewall", "white hat hacking",
-                "worm", "zero trust security", "zero-knowledge proof", "zombie computer"
+        categories.put("Generative AI", Arrays.asList(
+                "generative ai", "gpt", "chatgpt", "text generation", "style transfer",
+                "stable diffusion", "dalle", "midjourney", "latent diffusion models", "autoencoder",
+                "vae", "gan", "cycle gan", "image synthesis", "neural rendering",
+                "text-to-image", "text-to-video", "music generation", "data augmentation", "artificial creativity",
+                "deepfake", "neural texture", "variational inference", "latent space", "transformer-based generation"
         ));
 
-        categories.put("Networking and Distributed Systems", Arrays.asList(
-                "networking", "distributed system", "blockchain", "5g", "cloud computing",
-                "peer-to-peer", "p2p", "decentralized", "smart contract", "consensus algorithm",
-                "proof of work", "proof of stake", "ethereum", "bitcoin", "distributed ledger",
-                "network protocol", "tcp/ip", "dns", "cdn", "sdn", "network security",
+        // Human-Computer Interaction (HCI)
+        categories.put("Brain-Computer Interfaces", Arrays.asList(
+                "bci", "brain-computer interface", "eeg", "fmri", "brain signal processing",
+                "neural decoding", "brainwave", "motor imagery", "neural implant", "non-invasive bci",
+                "p300 speller", "steady-state visual evoked potential", "ssvep", "brain-to-text", "mind control interface",
+                "neurofeedback", "brain state classification", "eye-tracking", "brain oscillation", "adaptive bci",
+                "motor cortex interface", "cognitive load measurement", "closed-loop bci", "brain-inspired computing", "neuroprosthetics"
+        ));
 
-                // Eklenenler (100 yeni kelime)
-                "6g", "adaptive streaming", "autonomous network", "bandwidth", "beaconing",
-                "bft (byzantine fault tolerance)", "broadband", "byzantine consensus", "cache",
-                "cellular network", "centralized network", "cloud-native networking", "content delivery network",
-                "data center", "decentralized finance", "dht (distributed hash table)", "dlt (distributed ledger technology)",
-                "edge computing", "elastic network", "fog computing", "gateway",
-                "grid computing", "handover", "hyperledger", "hypervisor",
-                "interoperability", "ip address", "ipv4", "ipv6",
-                "kubernetes networking", "latency", "load balancing", "lora (long range)",
-                "lte", "manet (mobile ad hoc network)", "mesh network", "mimo (multiple input multiple output)",
-                "mobile edge computing", "multicast", "name resolution", "nfc (near field communication)",
-                "network function virtualization", "network slicing", "network topology", "nft (non-fungible token)",
-                "node", "off-chain", "on-chain", "openflow",
-                "overlay network", "packet switching", "peer discovery", "peer synchronization",
-                "permissioned blockchain", "permissionless blockchain", "private key", "public key",
-                "qos (quality of service)", "quic (quick udp internet connections)", "radio access network", "redundancy",
-                "relay node", "ripple", "roaming", "routing table",
-                "satellite internet", "scalability", "secure multiparty computation", "self-healing network",
-                "sharding", "sidechain", "smart grid", "softwarized network",
-                "software-defined perimeter", "state channel", "stochastic network", "subnet",
-                "swarm intelligence", "tcp congestion control", "tls handshake", "tokenization",
-                "tor network", "traffic shaping", "transaction throughput", "trustless network",
-                "udp (user datagram protocol)", "underlay network", "validator node", "vanet (vehicular ad hoc network)",
-                "vlan", "vpn", "wan (wide area network)", "web3",
-                "wireless mesh", "zero trust networking", "zk-snark (zero-knowledge succinct non-interactive argument of knowledge)"
+        categories.put("User Experience (UX) Design", Arrays.asList(
+                "ux", "user experience", "usability testing", "heuristic evaluation", "wireframing",
+                "prototyping", "a/b testing", "human factors", "cognitive load", "user journey mapping",
+                "persona development", "affordance", "user engagement", "visual hierarchy", "interaction design",
+                "gestalt principles", "hci", "emotion-driven design", "accessibility", "universal design",
+                "responsive design", "microinteractions", "design thinking", "iterative design", "eye-tracking analysis"
+        ));
+
+        categories.put("Augmented and Virtual Reality", Arrays.asList(
+                "augmented reality", "virtual reality", "mixed reality", "ar", "vr",
+                "hmd", "spatial computing", "occlusion", "marker-based tracking", "inside-out tracking",
+                "outside-in tracking", "3d reconstruction", "haptic feedback", "stereoscopic rendering", "pose tracking",
+                "hand tracking", "metaverse", "vr locomotion", "digital twin", "immersive analytics",
+                "foveated rendering", "motion sickness mitigation", "eye-tracking in vr", "gesture recognition", "virtual environment"
+        ));
+
+        // Big Data and Data Analytics
+        categories.put("Data Mining", Arrays.asList(
+                "data mining", "association rules", "apriori algorithm", "clustering", "k-means",
+                "hierarchical clustering", "anomaly detection", "classification", "decision tree", "random forest",
+                "feature selection", "dimensionality reduction", "principal component analysis", "pca", "latent dirichlet allocation",
+                "lda", "data preprocessing", "outlier detection", "market basket analysis", "pattern recognition",
+                "text mining", "web mining", "graph mining", "sequential pattern mining", "unsupervised learning"
+        ));
+
+        categories.put("Data Visualization", Arrays.asList(
+                "data visualization", "charting", "bar chart", "line graph", "scatter plot",
+                "heatmap", "treemap", "choropleth map", "geospatial visualization", "dashboards",
+                "tableau", "power bi", "ggplot", "seaborn", "matplotlib",
+                "d3.js", "plotly", "network graph", "parallel coordinates", "bubble chart",
+                "streamgraph", "sankey diagram", "histogram", "data storytelling", "infographic design"
+        ));
+
+        categories.put("Data Processing Systems", Arrays.asList(
+                "hadoop", "spark", "mapreduce", "yarn", "hdfs",
+                "hive", "pig", "tez", "flink", "kafka",
+                "storm", "beam", "presto", "trino", "bigquery",
+                "distributed computing", "parallel processing", "real-time analytics", "batch processing", "etl",
+                "nosql", "columnar storage", "key-value store", "graph processing", "spark streaming"
+        ));
+
+        categories.put("Time Series Analysis", Arrays.asList(
+                "time series", "forecasting", "seasonality", "trend analysis", "exponential smoothing",
+                "moving average", "autoregressive model", "arima", "sarima", "holt-winters",
+                "stationarity", "differencing", "cointegration", "vector autoregression", "var",
+                "granger causality", "anomaly detection", "kalman filter", "lstm for time series", "prophet",
+                "longitudinal data", "wavelet transform", "dynamic time warping", "self-similarity", "time-dependent patterns"
+        ));
+
+        // Cybersecurity
+        categories.put("Encryption Algorithms", Arrays.asList(
+                "encryption", "symmetric encryption", "asymmetric encryption", "aes", "rsa",
+                "elliptic curve cryptography", "ecc", "hash function", "sha-256", "md5",
+                "hmac", "pbkdf2", "bcrypt", "argon2", "digital signature",
+                "key exchange", "diffie-hellman", "homomorphic encryption", "quantum encryption", "zero-knowledge proof",
+                "tls encryption", "end-to-end encryption", "cipher modes", "gcm", "cbc"
+        ));
+
+        categories.put("Secure Software Development", Arrays.asList(
+                "secure coding", "owasp top 10", "input validation", "sql injection", "cross-site scripting",
+                "xss", "csrf", "buffer overflow", "session hijacking", "secure authentication",
+                "code review", "threat modeling", "secure design", "access control", "least privilege",
+                "logging and monitoring", "dependency management", "secure api", "penetration testing", "secure software lifecycle",
+                "security patches", "code obfuscation", "reverse engineering prevention", "security automation", "devsecops"
+        ));
+
+        categories.put("Network Security", Arrays.asList(
+                "firewall", "intrusion detection system", "intrusion prevention system", "vpn", "zero trust security",
+                "dos attack", "ddos attack", "port scanning", "packet sniffing", "tls",
+                "ssl", "secure shell", "ssh", "radius", "ipsec",
+                "dns security", "man-in-the-middle attack", "mitm", "honeypot", "security gateway",
+                "zero-day exploit", "phishing protection", "endpoint security", "network segmentation", "siem"
+        ));
+
+        categories.put("Authentication Systems", Arrays.asList(
+                "authentication", "authorization", "single sign-on", "sso", "multi-factor authentication",
+                "mfa", "oauth", "openid connect", "biometric authentication", "fingerprint recognition",
+                "facial recognition", "password hashing", "session management", "jwt", "hardware tokens",
+                "fido2", "smart card authentication", "identity provider", "adaptive authentication", "time-based otp",
+                "social login", "role-based access control", "rbac", "attribute-based access control", "abac", "privileged access management"
+        ));
+
+        categories.put("Digital Forensics", Arrays.asList(
+                "digital forensics", "computer forensics", "mobile forensics", "malware analysis", "memory forensics",
+                "disk forensics", "log analysis", "network forensics", "forensic imaging", "hash analysis",
+                "metadata analysis", "volatility framework", "autopsy", "cybercrime investigation", "incident response",
+                "evidence acquisition", "steganography detection", "rootkit analysis", "timeline analysis", "data carving",
+                "malware reverse engineering", "forensic reporting", "threat intelligence", "legal compliance", "chain of custody"
+        ));
+
+        // Networking and Distributed Systems
+        categories.put("5G and Next-Generation Networks", Arrays.asList(
+                "5g", "network slicing", "massive mimo", "beamforming", "low latency communication",
+                "private 5g", "edge computing", "network function virtualization", "nfv", "software-defined networking",
+                "sdn", "orchestrator", "millimeter wave", "dynamic spectrum sharing", "openran",
+                "carrier aggregation", "ultra-reliable low-latency communication", "urllc", "internet of things", "iot security",
+                "backhaul network", "small cells", "cognitive radio", "6g research", "latency optimization"
+        ));
+
+        categories.put("Cloud Computing", Arrays.asList(
+                "cloud computing", "iaas", "paas", "saas", "serverless computing",
+                "virtual machines", "kubernetes", "docker", "microservices", "api gateway",
+                "hybrid cloud", "multi-cloud", "cloud orchestration", "cloud security", "cloud cost optimization",
+                "cloud-native applications", "autoscaling", "load balancing", "edge computing", "cloud storage",
+                "object storage", "file system storage", "cloud backup", "disaster recovery", "content delivery network"
+        ));
+
+        categories.put("Blockchain Technology", Arrays.asList(
+                "blockchain", "distributed ledger", "smart contract", "ethereum", "bitcoin",
+                "consensus mechanism", "proof of work", "proof of stake", "decentralized finance", "defi",
+                "layer 2 scaling", "rollups", "zk-snarks", "zk-starks", "merkle tree",
+                "tokenization", "non-fungible tokens", "nft", "dao", "governance token",
+                "crypto wallets", "cold storage", "51% attack", "interoperability", "cross-chain transactions"
+        ));
+
+        categories.put("Peer-to-Peer (P2P) and Decentralized Systems", Arrays.asList(
+                "p2p", "peer-to-peer network", "torrenting", "distributed hash table", "dht",
+                "gossip protocol", "content-addressable storage", "interplanetary file system", "ipfs", "blockchain nodes",
+                "decentralized web", "dweb", "network resilience", "fault tolerance", "mesh networking",
+                "edge computing", "distributed consensus", "federated learning", "zero-trust architecture", "self-sovereign identity",
+                "peer validation", "anonymous communication", "darknet", "privacy-enhancing technologies", "p2p payments"
         ));
 
         return categories;
     }
 
-    private static String[] preprocessText(String text) {
-        // Metni küçük harfe çevir
-        text = text.toLowerCase();
-
-        // Gereksiz karakterleri kaldır
-        text = text.replaceAll("[^a-zA-Z0-9\\s]", " ");
-
-        // Fazla boşlukları temizle
-        text = text.replaceAll("\\s+", " ").trim();
-
-        // Kelime dizisine çevir
-        String[] words = text.split(" ");
-
-        // Stopwords listesi
-        Set<String> stopwords = new HashSet<>(Arrays.asList(
-                "a", "an", "the", "and", "but", "or", "for", "nor", "on", "at", "to", "by", "in",
-                "of", "with", "as", "is", "are", "was", "were", "be", "been", "being", "have", "has",
-                "had", "do", "does", "did", "will", "would", "shall", "should", "may", "might",
-                "must", "can", "could", "i", "you", "he", "she", "it", "we", "they", "this", "that"
-        ));
-
-        // Stopwords'leri filtrele
-        return Arrays.stream(words)
-                .filter(word -> !stopwords.contains(word) && word.length() > 1)
-                .toArray(String[]::new);
-    }
-
-    private static Map<String, Double> calculateTFIDF(String[] words, Map<String, List<String>> categories) {
-        Map<String, Double> scores = new HashMap<>();
-
-        // Metindeki toplam kelime sayısı
-        int totalWords = words.length;
-
-        // Her kategori için
-        for (Map.Entry<String, List<String>> category : categories.entrySet()) {
-            String categoryName = category.getKey();
-            List<String> keywords = category.getValue();
-
-            double categoryScore = 0.0;
-
-            // Her anahtar kelime için
-            for (String keyword : keywords) {
-                // TF: Kelimenin metinde geçme sıklığı
-                int termFrequency = 0;
-                if (keyword.contains(" ")) {
-                    // Çok kelimeli anahtar kelimeler için
-                    String documentText = String.join(" ", words);
-                    int lastIndex = 0;
-                    while (lastIndex != -1) {
-                        lastIndex = documentText.indexOf(keyword, lastIndex);
-                        if (lastIndex != -1) {
-                            termFrequency++;
-                            lastIndex += keyword.length();
-                        }
-                    }
-                } else {
-                    // Tek kelimeli anahtar kelimeler için
-                    for (String word : words) {
-                        if (word.equals(keyword)) {
-                            termFrequency++;
-                        }
-                    }
-                }
-
-                // TF hesaplama
-                double tf = (double) termFrequency / totalWords;
-
-                // IDF hesaplama (basitleştirilmiş)
-                // Kelimenin nadir geçmesi durumunda daha yüksek değer atar
-                double idf = Math.log((double) categories.size() /
-                        (1 + countCategoriesContainingKeyword(categories, keyword)));
-
-                // TF-IDF puanı
-                double tfidf = tf * idf;
-
-                // Kategori puanına ekle
-                categoryScore += tfidf;
-            }
-
-            scores.put(categoryName, categoryScore);
-        }
-
-        return scores;
-    }
-
-    private static int countCategoriesContainingKeyword(Map<String, List<String>> categories, String keyword) {
-        int count = 0;
-        for (List<String> keywords : categories.values()) {
-            if (keywords.contains(keyword)) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    private static String findDominantCategoryByTFIDF(Map<String, Double> scores) {
-        return scores.entrySet().stream()
-                .max(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey)
-                .orElse("Sınıflandırılamadı");
-    }
-
     public static void nlpBasedClassification() throws IOException {
         // PDF'i yükle
-        File file = new File("C:\\Users\\berkc\\Downloads\\örnek_makale1.pdf");
+        File file = new File("C:\\Users\\berkc\\Downloads\\örnek_makale4.pdf");
         PDDocument document = PDDocument.load(file);
         PDFTextStripper stripper = new PDFTextStripper();
         String text = stripper.getText(document);
@@ -475,10 +336,20 @@ public class ReplaceFirstInstance {
             categoryScores.put(categoryName, score);
         }
 
-        // En yüksek puanlı kategoriyi bul
-        String dominantCategory = findDominantCategoryByTFIDF(categoryScores);
-        System.out.println("Makalenin muhtemel alanı (NLP): " + dominantCategory);
-        System.out.println("NLP puanları: " + categoryScores);
+
+        // Puanlara göre kategori sıralaması yap
+        List<Map.Entry<String, Double>> sortedCategoryScores = new ArrayList<>(categoryScores.entrySet());
+        sortedCategoryScores.sort((a, b) -> b.getValue().compareTo(a.getValue()));
+
+        // En yüksek puanlı iki kategoriyi yazdır
+        System.out.println("En yüksek puanlı alanlar:");
+        for (int i = 0; i < Math.min(2, sortedCategoryScores.size()); i++) {
+            String category = sortedCategoryScores.get(i).getKey();
+            double score = sortedCategoryScores.get(i).getValue();
+            System.out.println((i+1) + ". " + category + ": " + score);
+        }
+
+        System.out.println("Tüm NLP puanları: " + categoryScores);
     }
 
     private static Set<String> createStopwordsList() {

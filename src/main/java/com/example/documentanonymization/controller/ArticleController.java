@@ -46,6 +46,11 @@ public class ArticleController {
         return articleService.viewAnonimizeArticleFile(trackingNumber);
     }
 
+    @GetMapping("/viewReviewed/{trackingNumber}")
+    public ResponseEntity<byte[]> viewReviewedArticleFile(@PathVariable String trackingNumber) {
+        return articleService.viewReviewedArticleFile(trackingNumber);
+    }
+
     @GetMapping("/reviewer/{id}")
     public ResponseEntity<?> getArticlesByReviewerId(@PathVariable Long id) {
         return articleService.getArticlesByReviewerId(id);
@@ -99,9 +104,21 @@ public class ArticleController {
     @PostMapping("/review/{trackingNumber}")
     public ResponseEntity<?> reviewArticle(MultipartHttpServletRequest request) {
         try {
+            System.out.println("Değerlendirme isteği alındı");
             String reviewText = request.getParameter("reviewText");
             String trackingNumber = request.getParameter("trackingNumber");
             Article updatedArticle = articleService.reviewArticle(reviewText, trackingNumber);
+            return ResponseEntity.ok(updatedArticle);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Beklenmeyen hata: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/updateStatus/{trackingNumber}")
+    public ResponseEntity<?> updateStatus(@PathVariable String trackingNumber, @RequestBody String status) {
+        try {
+            Article updatedArticle = articleService.updateStatus(trackingNumber, status);
             return ResponseEntity.ok(updatedArticle);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

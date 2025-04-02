@@ -2,7 +2,9 @@ package com.example.documentanonymization.dto;
 
 import com.example.documentanonymization.entity.Reviewer;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public class ArticleDto {
 
@@ -15,6 +17,7 @@ public class ArticleDto {
     private Date reviewDate;
     private Reviewer assignedReviewer;
     private String assignedReviewerName;
+    private List<String> specializations = new ArrayList<>();
 
     public String getFileName() {
         return fileName;
@@ -94,5 +97,13 @@ public class ArticleDto {
 
     public void setAssignedReviewerName(String assignedReviewerName) {
         this.assignedReviewerName = assignedReviewerName;
+    }
+
+    public List<String> getSpecializations() {
+        return specializations;
+    }
+
+    public void setSpecializations(List<String> specializations) {
+        this.specializations = specializations;
     }
 }

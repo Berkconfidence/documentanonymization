@@ -2,7 +2,9 @@ package com.example.documentanonymization.entity;
 
 import jakarta.persistence.*;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @Table(name="article")
@@ -24,7 +26,7 @@ public class Article {
     @Column(nullable = true, columnDefinition = "LONGBLOB")
     private byte[] reviewedFile; // Hakem değerlendirmesi sonrası belge
 
-    @Column(nullable = true)
+    @Column(nullable = true, columnDefinition = "TEXT")
     private String reviewComment;
 
     @Column(nullable = false)
@@ -45,6 +47,10 @@ public class Article {
     @ManyToOne
     @JoinColumn(name = "reviewer_id")
     private Reviewer assignedReviewer;
+
+    @ElementCollection
+    @CollectionTable(name = "article_specializations", joinColumns = @JoinColumn(name = "article_id"))
+    private List<String> specializations = new ArrayList<>();
 
     public Long getId() {
         return id;
@@ -136,5 +142,13 @@ public class Article {
 
     public void setReviewDate(Date reviewDate) {
         this.reviewDate = reviewDate;
+    }
+
+    public List<String> getSpecializations() {
+        return specializations;
+    }
+
+    public void setSpecializations(List<String> specializations) {
+        this.specializations = specializations;
     }
 }
