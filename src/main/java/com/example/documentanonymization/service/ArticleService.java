@@ -59,6 +59,9 @@ public class ArticleService {
     @Autowired
     private LogService logService;
 
+    @Autowired
+    private EncryptionService encryptionService;
+
     public ArticleService(ArticleRepository articleRepository, LogService logService) {
         this.articleRepository = articleRepository;
         this.logService = logService;
@@ -142,7 +145,10 @@ public class ArticleService {
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDispositionFormData("attachment", article.getFileName() + ".pdf");
 
-        return new ResponseEntity<>(article.getFile(), headers, HttpStatus.OK);
+        // Şifreli dosyayı çöz
+        byte[] decryptedFile = encryptionService.decryptFile(article.getFile());
+
+        return new ResponseEntity<>(decryptedFile, headers, HttpStatus.OK);
     }
 
     public ResponseEntity<byte[]> viewAnonimizeArticleFile(String trackingNumber) {
@@ -157,13 +163,16 @@ public class ArticleService {
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDispositionFormData("attachment", article.getFileName() + ".pdf");
 
-        return new ResponseEntity<>(article.getAnonymizedFile(), headers, HttpStatus.OK);
+        // Şifreli anonimleştirilmiş dosyayı çöz
+        byte[] decryptedFile = encryptionService.decryptFile(article.getAnonymizedFile());
+
+        return new ResponseEntity<>(decryptedFile, headers, HttpStatus.OK);
     }
 
     public ResponseEntity<byte[]> viewReviewedArticleFile(String trackingNumber) {
         Optional<Article> articleOpt = articleRepository.findByTrackingNumber(trackingNumber);
 
-        if (articleOpt.isEmpty() || articleOpt.get().getAnonymizedFile() == null) {
+        if (articleOpt.isEmpty() || articleOpt.get().getReviewedFile() == null) {
             return ResponseEntity.notFound().build();
         }
 
@@ -172,7 +181,10 @@ public class ArticleService {
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDispositionFormData("attachment", article.getFileName() + ".pdf");
 
-        return new ResponseEntity<>(article.getReviewedFile(), headers, HttpStatus.OK);
+        // Şifreli incelenmiş dosyayı çöz
+        byte[] decryptedFile = encryptionService.decryptFile(article.getReviewedFile());
+
+        return new ResponseEntity<>(decryptedFile, headers, HttpStatus.OK);
     }
 
     public ResponseEntity<List<ArticleDto>> getArticlesByReviewerId(Long id) {
@@ -225,7 +237,11 @@ public class ArticleService {
 
         Article article = new Article();
         article.setFileName(fileName);
-        article.setFile(file.getBytes());
+
+        // Dosyayı şifrele
+        byte[] encryptedFile = encryptionService.encryptFile(file.getBytes());
+        article.setFile(encryptedFile);
+
         article.setAuthorEmail(email);
         article.setStatus("Alındı");
         article.setTrackingNumber(trackingNumber);
@@ -255,6 +271,13 @@ public class ArticleService {
         article.setAssignedReviewer(reviewer);
         article.setStatus("Değerlendirmede");
 
+        try {
+            String action = "Hakem Makaleye Atandı";
+            logService.createLog(trackingNumber, action, "admin@gmail.com", "Yazar");
+        } catch (Exception e) {
+            System.err.println("Log oluşturma sırasında hata: " + e.getMessage());
+        }
+
         return articleRepository.save(article);
     }
 
@@ -271,8 +294,11 @@ public class ArticleService {
         article.setReviewDate(new Date());
 
         try {
+            // Şifreli dosyayı çöz
+            byte[] decryptedFile = encryptionService.decryptFile(article.getFile());
+
             PdfDocument pdfDoc = new PdfDocument();
-            pdfDoc.loadFromBytes(article.getFile());
+            pdfDoc.loadFromBytes(decryptedFile);
 
             PdfPageBase newPage = pdfDoc.getPages().add();
 
@@ -307,14 +333,30 @@ public class ArticleService {
 
             java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
             pdfDoc.saveToStream(output);
-            article.setReviewedFile(output.toByteArray());
+
+            // Değerlendirilmiş dosyayı şifrele ve kaydet
+            byte[] encryptedReviewedFile = encryptionService.encryptFile(output.toByteArray());
+            article.setReviewedFile(encryptedReviewedFile);
 
             pdfDoc.close();
+
+            // Log kayıt işlemi
+            Reviewer reviewer = article.getAssignedReviewer();
+            if (reviewer != null) {
+                String action = "Makale değerlendirildi";
+                logService.createLog(trackingNumber, action, reviewer.getEmail(), "Hakem");
+            }
 
         } catch (Exception e) {
             System.err.println("PDF yorumu eklenirken hata oluştu: " + e.getMessage());
             e.printStackTrace();
-            article.setReviewedFile(article.getFile());
+
+            try {
+                // Hata durumunda orijinal dosyayı kopyala
+                article.setReviewedFile(encryptionService.encryptFile(article.getFile()));
+            } catch (Exception ex) {
+                System.err.println("Şifreleme işleminde hata: " + ex.getMessage());
+            }
         }
 
         return articleRepository.save(article);
@@ -365,6 +407,13 @@ public class ArticleService {
         Article article = articleOpt.get();
         article.setStatus(status);
 
+        try {
+            String action = "Makale sisteme yüklendi";
+            logService.createLog(trackingNumber, action, "admin@gmail.com", "Yazar");
+        } catch (Exception e) {
+            System.err.println("Log oluşturma sırasında hata: " + e.getMessage());
+        }
+
         return articleRepository.save(article);
     }
 
@@ -376,37 +425,48 @@ public class ArticleService {
         }
 
         Article article = articleOpt.get();
-        byte[] pdfBytes = article.getFile();
 
+        // Şifreli dosyayı çöz
+        byte[] decryptedFile = encryptionService.decryptFile(article.getFile());
 
         // 1. Metni ayıkla
-        String extractedText = extractTextFromPDF(pdfBytes);
+        String extractedText = extractTextFromPDF(decryptedFile);
 
         // 2. Kelimeleri anonimleştir
         HashMap<String, String> anonymizedText = anonymizeText(extractedText);
 
         // 3. Kelimeleri değiştir ve PDF'i güncelle
-        byte[] anonymizePdf = anonymizePdf(article.getFile(), anonymizedText);
+        byte[] anonymizePdf = anonymizePdf(decryptedFile, anonymizedText);
 
         // 4. Resimleri ayıkla ve değiştir
         byte[] blurredPdf = extractBlurAndReplaceImages(anonymizePdf);
 
         // 5. Makalenin alanını bul
-        List<String> specializations = findSpecializations(article.getFile());
+        List<String> specializations = findSpecializations(decryptedFile);
 
         // 6. İlgili Hakemi bul
         Reviewer reviewer = findReviewerbySpecializations(specializations);
 
-        // 7. Update the article with anonymized file
-        article.setAnonymizedFile(blurredPdf);
+        // 7. Anonimleştirilmiş dosyayı şifrele ve kaydet
+        byte[] encryptedAnonymizedFile = encryptionService.encryptFile(blurredPdf);
+        article.setAnonymizedFile(encryptedAnonymizedFile);
+
         article.setSpecializations(specializations);
         article.setAssignedReviewer(reviewer);
         article.setStatus("Değerlendirmede");
+
+        try {
+            String action = "Makale sisteme yüklendi";
+            logService.createLog(trackingNumber, action, "admin@gmail.com", "Yazar");
+        } catch (Exception e) {
+            System.err.println("Log oluşturma sırasında hata: " + e.getMessage());
+        }
 
         return articleRepository.save(article);
     }
 
     private String extractTextFromPDF(byte[] pdfBytes) throws IOException {
+        // Parametre olarak gelen pdf zaten şifresi çözülmüş olduğundan direkt kullanabiliriz
         PDDocument document = PDDocument.load(pdfBytes);
         try {
             PDFTextStripper stripper = new PDFTextStripper();
@@ -439,10 +499,21 @@ public class ArticleService {
                 "COUNTRY", "EMAIL", "NATIONALITY", "SCHOOL", "UNIVERSITY"
         ));
 
+        // Anonimleştirilmeyecek özel terimleri tanımla
+        Set<String> protectedTerms = new HashSet<>(Arrays.asList(
+                "EEG", "Fourier", "CNN", "deap", "DENS", "LSTM", "Valence"
+        ));
+
         HashMap<String, String> replacements = new HashMap<>();
 
         for (CoreEntityMention entity : entities) {
             String entityType = entity.entityType();
+            String entityText = entity.text();
+
+            // Korunan terimlerden biriyse anonimleştirme yapma
+            if (protectedTerms.contains(entityText)) {
+                continue;
+            }
 
             // Sadece istediğimiz türleri anonimleştir
             if (allowedTypes.contains(entityType)) {
@@ -450,7 +521,7 @@ public class ArticleService {
                 int end = entity.charOffsets().second();
                 String replacement = "[" + entityType + "]";
 
-                replacements.put(entity.text(), replacement);
+                replacements.put(entityText, replacement);
                 anonymizedText.replace(start, end, replacement);
             }
         }
@@ -460,7 +531,8 @@ public class ArticleService {
 
         while (uniMatcher.find()) {
             String match = uniMatcher.group();
-            if (!replacements.containsKey(match)) {
+            // Korunan terimlerden biriyse anonimleştirme yapma
+            if (!protectedTerms.contains(match) && !replacements.containsKey(match)) {
                 replacements.put(match, "[ORGANIZATION]");
             }
         }
